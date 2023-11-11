@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- ctl_v1_locationctl.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
