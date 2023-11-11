@@ -25,6 +25,7 @@ import (
 )
 
 var (
+
 	// GroupVersion is group version used to register these objects
 	GroupVersion = schema.GroupVersion{Group: "ctl.pinetree227.github.io", Version: "v1"}
 
