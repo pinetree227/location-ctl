@@ -37,9 +37,9 @@ spec:
               podLatitude:
                 description: Foo is an example field of LocationCtl. Edit locationctl_types.go
                   to remove/update
-                type: integer
+                type: string
               podLongitude:
-                type: integer
+                type: string
               replicas:
                 default: 1
                 description: Replicas is the number of viewers.

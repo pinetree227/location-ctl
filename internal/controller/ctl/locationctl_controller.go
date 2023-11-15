@@ -19,7 +19,7 @@ package ctl
 import (
 	"context"
         //"fmt"
-        "strconv"
+//        "strconv"
         appsv1 "k8s.io/api/apps/v1"
         //corev1 "k8s.io/api/core/v1"
         "k8s.io/apimachinery/pkg/api/equality"
@@ -137,8 +137,8 @@ func (r *LocationCtlReconciler) reconcileDeployment(ctx context.Context, mdView 
             WithTemplate(corev1apply.PodTemplateSpec().
                 WithLabels(map[string]string{
                         "app": "nginx",
-                        "podLatitude": strconv.Itoa(mdView.Spec.PodLatitude),
-                        "podLongitude": strconv.Itoa(mdView.Spec.PodLongitude),
+                        "podx": mdView.Spec.PodX,
+                        "pody": mdView.Spec.PodY,
                 }).
                 WithSpec(corev1apply.PodSpec().
                     WithContainers(corev1apply.Container().
