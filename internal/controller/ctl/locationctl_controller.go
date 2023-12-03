@@ -18,12 +18,16 @@ package ctl
 
 import (
 	"context"
-        //"fmt"
-//        "strconv"
+        "fmt"
+        "strconv"
+	"regexp"
+	"math"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
         appsv1 "k8s.io/api/apps/v1"
-        //corev1 "k8s.io/api/core/v1"
+        corev1 "k8s.io/api/core/v1"
         "k8s.io/apimachinery/pkg/api/equality"
         "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
         "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
         "k8s.io/apimachinery/pkg/runtime"
         //"k8s.io/apimachinery/pkg/util/intstr"
@@ -94,6 +98,65 @@ func (r *LocationCtlReconciler) Reconcile(ctx context.Context, req ctrl.Request)
         if !mdView.ObjectMeta.DeletionTimestamp.IsZero() {
                 return ctrl.Result{}, nil
         }
+	if mdView.Spec.Update == 1{
+		var pod appsv1.Deployment
+		err := r.Get(ctx, client.ObjectKey{Namespace: "default", Name: "viewer-" + mdView.Name}, &pod)
+		        if err != nil {
+				return ctrl.Result{}, err
+			}
+		nodeName := pod.Spec.Template.Spec.NodeName
+                        value1 := mdView.Spec.PodX
+                        if value1 != "" {
+                                if _, err := strconv.Atoi(value1); err != nil {
+                                        return ctrl.Result{}, err
+
+                                }
+                        }
+                        value2 := mdView.Spec.PodY
+                        if value2 != "" {
+                                if _, err := strconv.Atoi(value2); err != nil {
+                                  return ctrl.Result{}, err
+
+                         }
+                 }
+                        podx, _ := strconv.ParseFloat(value1,64)
+                        pody, _ := strconv.ParseFloat(value2,64)
+                        y,x,err := extractNumbers(nodeName)
+                        if err != nil {
+                                        fmt.Printf("Error getting last digit from node name %s: %v\n", nodeName, err)
+                                         return ctrl.Result{}, err
+
+                                }
+                                dest := (x - podx) * (x - podx) + (y - pody) * (y - pody)
+                                dest = math.Sqrt(float64(dest))
+			if mdView.Spec.Apptype == "RealTime"{
+				if dest > 250 {
+    uid := pod.GetUID()
+    resourceVersion := pod.GetResourceVersion()
+    cond := metav1.Preconditions{
+        UID:             &uid,
+        ResourceVersion: &resourceVersion,
+    }
+    err = r.Delete(ctx, &pod, &client.DeleteOptions{
+        Preconditions: &cond,
+    })
+
+				}
+			} else {
+				if dest > 500 {
+    uid := pod.GetUID()
+    resourceVersion := pod.GetResourceVersion()
+    cond := metav1.Preconditions{
+        UID:             &uid,
+        ResourceVersion: &resourceVersion,
+    }
+    err = r.Delete(ctx, &pod, &client.DeleteOptions{
+        Preconditions: &cond,
+    })
+
+			}
+	}
+}
 /*
         err = r.reconcileConfigMap(ctx, mdView)
         if err != nil {
@@ -130,6 +193,7 @@ func (r *LocationCtlReconciler) reconcileDeployment(ctx context.Context, mdView 
                 return err
         }
         dep := appsv1apply.Deployment(depName, mdView.Namespace).
+	WithName(depName).
                 WithOwnerReferences(owner).
                WithSpec(appsv1apply.DeploymentSpec().
             WithReplicas(1).
@@ -139,11 +203,18 @@ func (r *LocationCtlReconciler) reconcileDeployment(ctx context.Context, mdView 
                         "app": "nginx",
                         "podx": mdView.Spec.PodX,
                         "pody": mdView.Spec.PodY,
+			"apptype": mdView.Spec.Apptype,
                 }).
                 WithSpec(corev1apply.PodSpec().
                     WithContainers(corev1apply.Container().
                         WithName("nginx").
-                        WithImage("nginx:latest"),
+                        WithImage("nginx:latest").
+			WithResources(corev1apply.ResourceRequirements().
+			WithRequests(corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU : resource.MustParse("500m"),
+			}),
+			),
                     ),
                 ),
             ),
@@ -192,10 +263,38 @@ func controllerReference(mdView pinev1.LocationCtl, scheme *runtime.Scheme) (*me
                 WithAPIVersion(gvk.GroupVersion().String()).
                 WithKind(gvk.Kind).
                 WithName(mdView.Name).
+                WithName(mdView.Name).
                 WithUID(mdView.GetUID()).
                 WithBlockOwnerDeletion(true).
                 WithController(true)
         return ref, nil
+}
+
+func extractNumbers(inputString string) (float64, float64, error) {
+        // 正規表現のパターン
+        pattern := `(\d{2})(\d{2})$`
+
+        // 正規表現に一致するか確認
+        re := regexp.MustCompile(pattern)
+        matches := re.FindStringSubmatch(inputString)
+
+        if len(matches) != 3 {
+                return 0, 0, fmt.Errorf("数値に変換できません")
+
+        }
+
+        // 文字列から数値に変換
+        firstTwo, err := strconv.ParseFloat(matches[1],64)
+        if err != nil {
+                return 0, 0, fmt.Errorf("数値に変換できません: %v", err)
+        }
+
+        lastTwo, err := strconv.ParseFloat(matches[2],64)
+        if err != nil {
+                return 0, 0, fmt.Errorf("数値に変換できません: %v", err)
+        }
+
+        return firstTwo*8.66, lastTwo*5, nil
 }
 
 
@@ -205,4 +304,4 @@ func (r *LocationCtlReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pinev1.LocationCtl{}).
 		Complete(r)
-}
+	}

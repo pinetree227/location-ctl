@@ -34,15 +34,21 @@ spec:
           spec:
             description: LocationCtlSpec defines the desired state of LocationCtl
             properties:
-              podLatitude:
+              podx:
                 description: Foo is an example field of LocationCtl. Edit locationctl_types.go
                   to remove/update
                 type: string
-              podLongitude:
+              pody:
+                type: string
+              realtime:
                 type: string
               replicas:
                 default: 1
                 description: Replicas is the number of viewers.
+                format: int32
+                type: integer
+              update:
+                default: 0
                 format: int32
                 type: integer
             type: object

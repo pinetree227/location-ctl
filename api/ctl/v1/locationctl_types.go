@@ -30,15 +30,21 @@ type LocationCtlSpec struct {
 
 	// Foo is an example field of LocationCtl. Edit locationctl_types.go to remove/update
         //+kubebuilder:validation:Required
-        PodX string `json:"podLatitude,omitempty"`
+        PodX string `json:"podx,omitempty"`
 
         //+kubebuilder:validation:Required
-        PodY string `json:"podLongitude,omitempty"`
+        PodY string `json:"pody,omitempty"`
 
         // Replicas is the number of viewers.
         // +kubebuilder:default=1
         // +optional
         Replicas int32 `json:"replicas,omitempty"`
+	// +kubebuilder:default=0
+        // +optional
+	Update int32 `json:"update,omitempty"`
+        // +optional
+	Apptype string `json:"realtime,omitempty"`
+
 
 }
 
